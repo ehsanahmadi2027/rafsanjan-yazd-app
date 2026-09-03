@@ -244,7 +244,7 @@ with tab2:
     selected_disp = st.selectbox("📁 فیلتر بر اساس دیسیپلین تخصصی پروژه:", all_disciplines)
     
     # فیلتر متنی نام کالا
-    search_term = st.text_input("🔍 جستجوی متنی نام کالا یا مشخصات فنی (مثال: 16", API 5L, XLPE):")
+    search_term = st.text_input('🔍 جستجوی متنی نام کالا یا مشخصات فنی (مثال: 16", API 5L, XLPE):')
     
     # اعمال فیلترها روی دیتاست اصلی
     filtered_df = df.copy()
