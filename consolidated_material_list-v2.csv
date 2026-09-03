@@ -1,0 +1,51 @@
+discipline,item_name,quantity,unit,rial_cost,euro_cost,specs
+Piping & Valves,"Pipe (8"", 12"", 14"", 16"", 18"", 28"")","5,260 M",Meters,0,753296.0,"HFW Welded, API 5L Gr. B/X52/X60, High-pressure steel lines"
+Piping & Valves,"Gate Valves (6"" to 16"")",23,NO,0,127853.43,"ASME B16.34, Flanged, Class 150/600/900, ASTM A216 WCB"
+Piping & Valves,"Check Valves (6"" to 28"")",41,NO,0,188213.04,"ASME B16.34, Swing Type, Class 150/600/900/1500"
+Piping & Valves,"Ball Valves (6"" to 28"")",30,NO,0,290207.68,"Class 150/600/900/1500, Trunnion/Reduced Bore"
+Piping & Valves,"Chock Valves (8"")",4,NO,0,10858.55,"Class 150/900/1500, Flanged RF/RTJ"
+Piping & Valves,"Globe Valves (14"")",1,NO,0,19896.18,"Class 1500, Flanged RTJ, Swivel Plug Disc"
+Piping & Valves,"Expansion Joints (14"" to 28"")",6,NO,0,99.0,"Spool Type, NBR Synthetic Rubber with Canvas"
+Piping & Valves,Bulk Piping Accessories,2,SET,0,152500.0,"Fittings, Flanges, Gaskets, Bolts/Nuts per Attachment 10"
+Mechanical Equipment,Main Booster Pumps,5,NO,0,564520.0,"BP-451 A/B/C (Rafsanjan) & BP-551 A/B/C (Yazd), Q=838m3/h & 633m3/h"
+Mechanical Equipment,Auxiliary Pumps,7,NO,0,117000.0,"Re-injection P-551, Close/Dirty Drain, Fuel Pumps (Yazd)"
+Mechanical Equipment,Pig Launcher & Receiver Traps,2,SET,0,27800.0,"16""x20"", Class 900#, API 5L X60, with Jib Crane"
+Mechanical Equipment,Corrosion Inhibitor Packages,2,SET,0,170000.0,PK-451 (Rafsanjan) and PK-551 (Yazd)
+Mechanical Equipment,Overhead & Jib Cranes,9,NO,0,225000.0,"Overhead Manual 15T & 5T, Jib 1T"
+Mechanical Equipment,Process Tanks (Buried),3,NO,60580000000,0.0,"TK-551 (Drain 20m3), TK-552 (Dirty Drain 20m3), TK-560 (Fuel 30m3)"
+Mechanical Equipment,Main Strainers,8,NO,0,228400.0,Class 600# & 900# for Rafsanjan and Yazd Stations
+Mechanical Equipment,"Hot Bends (16"" 45 Deg)",12,NO,14600000000,0.0,"API 5L Gr.X60, Radius 7D, WT 0.5"" / 0.438"" / 0.344"""
+Mechanical Equipment,Field Joint Coatings (FBE),"20,000",NO,0,200000.0,Two-Layer FBE or solvent free liquid epoxy
+Mechanical Equipment,"Anchor & Insulating Flanges (16"")",4,NO,9000000000,24600.0,"Anchor Flange (9B Rial), Insulating Flange (24.6k Euro)"
+Mechanical Equipment,Power Pack Units (Hydraulic),2,NO,0,160000.0,"4-Stroke gasoline engine, gear pump for Line Block Valves"
+Mechanical Equipment,"Casing Pipe 20"" & Main Pump Services",600m/6Pumps,Bulk,37600000000,156000.0,"600m railroad crossing casing, Main Pump Testing MP-101/201"
+Mechanical Equipment,Bulk Mechanical Equipment,2,SET,5000000000,3192.6,Station installation bulk parts
+Electrical Equipment,Medium Voltage Cables,"12,360 M",Meters,192345541000,0.0,"1x240 & 3x185, 12/20kV & 6/10kV copper SWA lead covered"
+Electrical Equipment,Low Voltage Cables,"3,270 M",Meters,156135222340,0.0,"Armored Copper Lead Covered (3x240+120, 3x120+70, etc.)"
+Electrical Equipment,MV/LV Switchgears,8,SET,161176517420,1132440.0,"6kV, 20kV VCB Switchgears and 0.4kV LV Switchgears"
+Electrical Equipment,Power Transformers,9,NO,5250000000,55400.0,12500kVA (20/6.3kV ONAN) and distribution 300kVA/50kVA
+Electrical Equipment,UPS & Battery Chargers,4,SET,0,376000.0,230VAC dual 20kVA & 110VDC dual 5kW IP-42 with Battery Bank
+Electrical Equipment,Power Transmission Line 20kV,20 KM,KM,140000000000,0.0,20 km overhead distribution with AAAC aluminum conductors
+Electrical Equipment,Diesel Emergency Generator,1,NO,12000000000,0.0,"300 kVA, 400V with ATS for Yazd Station"
+Electrical Equipment,Bulk Electrical & Lighting,3,SET,30000000000,16000.0,"Lighting, grounding, general cabling trays"
+Instrumentation & Telecom,F&G / Safety Control Systems,4,SET,0,930000.0,"Microprocessor F&G Panels, Dual Redundant PLC-based PCS & ESD"
+Instrumentation & Telecom,Motor Actuated Valves (MOV),54,NO,0,1118550.0,"Ball full bore 4"" to 28"" Classes 150-1500 with 400VAC actuators"
+Instrumentation & Telecom,Ultrasonic Flow Meters,8,SET,0,594000.0,"Inline 16"" Class 600# and 900# multi-path meters"
+Instrumentation & Telecom,"Transmitters, Indicators & Switches",167,NO,0,331770.0,"Pressure, temperature, level, density transmitters w/ Monel/316SS"
+Instrumentation & Telecom,"Relief, Control & Gate Valves",57,NO,24320000000,211900.0,"Globe control 12"", thermal/pressure relief, restriction orifices"
+Instrumentation & Telecom,"Telecom IP Phone, CCTV & Paging",12,SET,0,1113630.0,"IP PBX, Industrial Paging Central, CCTV Security, LAN Servers"
+Instrumentation & Telecom,Fiber Optic Cable Route,"4,000 M",Meters,2420000000,0.0,16-Core single-mode armored optic cable with OCDF & closures
+Instrumentation & Telecom,Tank Gauging System (TGS),3,SET,0,12600.0,"Radar level, multi-point temp transmitters, local indicators"
+Instrumentation & Telecom,Bulk Instrumentation Hardware,3,SET,0,65000.0,"Installation accessories, tubing, cables, fitting"
+Cathodic Protection,Transformer Rectifiers,5,NO,3930000000,0.0,Output 50V/25A and 50V/50A outdoor oil-immersed smart units
+Cathodic Protection,"CP Anodes (MMO, HSCI, Mg, Zn)",820,NO,17260000000,0.0,"MMO Wire, HSCI rod, Magnesium 32lb, Zinc 10lb temporary"
+Cathodic Protection,Petroleum Coke Breeze Backfill,"13,500 Kg",Kg,7020000000,0.0,Type 2 carbon backfill (>90% C) for deep well bed
+Cathodic Protection,Zinc Earthing Cells & Ref Electrodes,4,NO,232000000,0.0,Prepackaged Zinc cells 36x36x1520mm & Cu/CuSO4 reference
+Cathodic Protection,Bulk CP Equipment & Bonding,3,SET,1300500000,0.0,"Distribution boxes, bonding cables, testing cabinets"
+Safety & Fire Fighting,Water Hydrants & Monitors,12,SET,0,42500.0,Outdoor hydrants with fixed monitors and valve inlets
+Safety & Fire Fighting,Fire Extinguishers (CO2 & Dry Powder),38,NO,0,13150.0,"Handheld 6kg/12kg, Wheeled 30kg/75kg CO2 & Powder"
+Safety & Fire Fighting,Gaseous Total Flooding Systems,2,SET,0,80000.0,Inert Gas automatic flooding for Control & Diesel buildings
+Safety & Fire Fighting,Bulk Safety Equipment,2,SET,0,8000.0,"Fire hose boxes, emergency sirens, safety signs"
+Spare Parts,Rafsanjan Station Two-Year Spares,1,PKG,145000,145000.0,Pre-commissioning and two-year spares package
+Spare Parts,Yazd Station Two-Year Spares,1,PKG,145000,145000.0,"Mechanical, electrical, instrument spare parts"
+Spare Parts,Pipeline Valves & Actuator Spares,1,PKG,23000,23000.0,"LBV hydraulic seals, solar and connection spares"
