@@ -19,7 +19,7 @@ except ImportError:
 
 # ----------------- streamlit set config -----------------
 st.set_page_config(
-    page_title="پورتال تدارکات و دستیار صوتی رُز | ROSE AI v12",
+    page_title="پورتال تدارکات و دستیار صوتی رُز | ROSE AI v13",
     page_icon="🌹",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -557,6 +557,11 @@ def load_and_index_excel():
 
 try:
     df, all_sheets = load_and_index_excel()
+    # Force float/int type conversion for financial columns to avoid TypeErrors in Pandas summing when Excel has mixed text/numeric cells
+    if 'rial_cost' in df.columns:
+        df['rial_cost'] = pd.to_numeric(df['rial_cost'], errors='coerce').fillna(0)
+    if 'euro_cost' in df.columns:
+        df['euro_cost'] = pd.to_numeric(df['euro_cost'], errors='coerce').fillna(0)
 except Exception as e:
     st.error(f"خطا در لود دیتابیس متریال: {str(e)}")
     st.stop()
@@ -758,7 +763,7 @@ with st.sidebar:
         ''',
         unsafe_allow_html=True
     )
-    st.markdown(f"<div style='text-align: center; color: {theme['primary']}; font-weight: bold;'>رُز | ROSE AI v12</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align: center; color: {theme['primary']}; font-weight: bold;'>رُز | ROSE AI v13</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align: center; color: #8a7e72; font-size: 13px; margin-bottom: 15px;'>دستیار صوتی و حقوقی دوزبانه پروژه</div>", unsafe_allow_html=True)
     
     if st.session_state['rose_state'] == 'speaking':
@@ -789,7 +794,7 @@ with st.sidebar:
     st.markdown("---")
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Material_Summary_v12')
+        df.to_excel(writer, index=False, sheet_name='Material_Summary_v13')
         
     st.download_button(
         label="📥 دانلود شیت تراز کالاها (Excel)",
