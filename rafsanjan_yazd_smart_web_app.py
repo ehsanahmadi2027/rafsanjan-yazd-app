@@ -7,9 +7,8 @@ import base64
 import urllib.request
 import urllib.parse
 import json
-import time
 
-# Try to import Google Text-to-Speech library
+# Try to import Google Text-to-Speech library (used as back-up)
 try:
     from gtts import gTTS
     gtts_available = True
@@ -18,281 +17,11 @@ except ImportError:
 
 # ----------------- streamlit set config -----------------
 st.set_page_config(
-    page_title="دستیار فوق‌هوشمند رُز | ROSE AI v9",
+    page_title="دستیار صوتی و تصویری هوشمند رُز | ROSE AI",
     page_icon="🌹",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ----------------- STATE MANAGER & THEME CONFIG -----------------
-if "theme" not in st.session_state:
-    st.session_state.theme = "ساینبرپانک نئون (Cyberpunk Cyan-Magenta)"
-
-if "rose_voice_speed" not in st.session_state:
-    st.session_state.rose_voice_speed = 1.0
-
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
-# Theme Definitions
-THEME_STYLES = {
-    "ساینبرپانک نئون (Cyberpunk Cyan-Magenta)": {
-        "bg": "#08090f",
-        "card_bg": "rgba(255, 255, 255, 0.03)",
-        "card_border": "rgba(0, 240, 255, 0.2)",
-        "text": "#e2e8f0",
-        "primary": "#00f0ff",
-        "secondary": "#ff007f",
-        "accent": "#ff007f",
-        "glow": "0 0 15px rgba(0, 240, 255, 0.4)",
-        "sidebar_bg": "#0c0e17"
-    },
-    "طلایی کلاسیک نفتی (Classic Petroleum Navy-Gold)": {
-        "bg": "#0f172a",
-        "card_bg": "rgba(30, 41, 59, 0.7)",
-        "card_border": "rgba(234, 179, 8, 0.2)",
-        "text": "#f1f5f9",
-        "primary": "#eab308",
-        "secondary": "#38bdf8",
-        "accent": "#ea580c",
-        "glow": "0 0 15px rgba(234, 179, 8, 0.3)",
-        "sidebar_bg": "#1e293b"
-    },
-    "سبز ایمنی محیط‌زیست (HSE Emerald & Slate)": {
-        "bg": "#061f17",
-        "card_bg": "rgba(16, 185, 129, 0.05)",
-        "card_border": "rgba(16, 185, 129, 0.25)",
-        "text": "#ecfdf5",
-        "primary": "#10b981",
-        "secondary": "#a7f3d0",
-        "accent": "#3b82f6",
-        "glow": "0 0 15px rgba(16, 185, 129, 0.3)",
-        "sidebar_bg": "#041610"
-    },
-    "رویال بلک لوکس (Royal Black & Amethyst)": {
-        "bg": "#09050f",
-        "card_bg": "rgba(139, 92, 246, 0.04)",
-        "card_border": "rgba(139, 92, 246, 0.2)",
-        "text": "#f5f3ff",
-        "primary": "#a78bfa",
-        "secondary": "#ec4899",
-        "accent": "#8b5cf6",
-        "glow": "0 0 15px rgba(139, 92, 246, 0.4)",
-        "sidebar_bg": "#11071c"
-    }
-}
-
-active_theme = THEME_STYLES[st.session_state.theme]
-
-# ----------------- RESPONSIVE CSS INJECTION -----------------
-st.markdown(
-    f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
-    
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {{
-        background-color: {active_theme['bg']} !important;
-        color: {active_theme['text']} !important;
-        font-family: 'Vazirmatn', sans-serif !important;
-        direction: RTL !important;
-        text-align: right !important;
-    }}
-    
-    .stApp {{
-        direction: RTL !important;
-        text-align: right !important;
-    }}
-    
-    h1, h2, h3, h4, h5, h6 {{
-        color: {active_theme['primary']} !important;
-        font-family: 'Vazirmatn', sans-serif !important;
-        text-shadow: {active_theme['glow']};
-    }}
-    
-    /* Responsive title styling */
-    .main-title {{
-        color: {active_theme['primary']} !important;
-        text-align: center;
-        font-size: calc(1.5rem + 1vw);
-        font-weight: bold;
-        margin-top: 10px;
-        margin-bottom: 5px;
-        text-shadow: {active_theme['glow']};
-    }}
-    
-    .sub-title {{
-        color: {active_theme['secondary']};
-        text-align: center;
-        font-size: calc(0.8rem + 0.4vw);
-        margin-bottom: 25px;
-    }}
-    
-    /* 3D Glassmorphism Glowing Responsive Avatar */
-    .avatar-container {{
-        text-align: center;
-        padding: 15px;
-        position: relative;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }}
-    
-    .avatar-glow {{
-        position: absolute;
-        width: 160px;
-        height: 160px;
-        border-radius: 50%;
-        background: radial-gradient(circle, {active_theme['primary']}33 0%, {active_theme['secondary']}11 70%, transparent 100%);
-        animation: pulse-glow 3s infinite ease-in-out;
-    }}
-    
-    .live-avatar {{
-        position: relative;
-        border-radius: 50%;
-        border: 3px solid {active_theme['primary']};
-        box-shadow: 0 0 20px {active_theme['primary']}55;
-        animation: breathing 4s infinite ease-in-out;
-        transition: transform 0.3s ease-in-out, border-color 0.3s;
-        width: 130px;
-        height: 130px;
-        object-fit: cover;
-        z-index: 2;
-    }}
-    
-    .live-avatar:hover {{
-        transform: scale(1.08) rotate(3deg);
-        border-color: {active_theme['secondary']};
-        box-shadow: 0 0 30px {active_theme['secondary']}aa;
-    }}
-    
-    @keyframes breathing {{
-        0% {{ transform: scale(1); }}
-        50% {{ transform: scale(1.03) translateY(-3px); }}
-        100% {{ transform: scale(1); }}
-    }}
-    
-    @keyframes pulse-glow {{
-        0% {{ transform: scale(0.9); opacity: 0.6; }}
-        50% {{ transform: scale(1.15); opacity: 0.9; }}
-        100% {{ transform: scale(0.9); opacity: 0.6; }}
-    }}
-    
-    /* Cyber Glassmorphic KPI Cards */
-    .kpi-card-custom {{
-        background: {active_theme['card_bg']};
-        border: 1px solid {active_theme['card_border']};
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(5px);
-        transition: all 0.3s;
-        margin-bottom: 12px;
-    }}
-    
-    .kpi-card-custom:hover {{
-        border-color: {active_theme['primary']};
-        box-shadow: 0 0 15px {active_theme['primary']}44;
-        transform: translateY(-2px);
-    }}
-    
-    /* Chat Bubbles Styling */
-    .chat-bubble-user {{
-        background-color: rgba(255, 255, 255, 0.04);
-        border-right: 5px solid {active_theme['secondary']};
-        border-left: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-        text-align: right;
-        direction: RTL;
-        color: #e2e8f0;
-    }}
-    
-    .chat-bubble-rose {{
-        background-color: rgba(0, 240, 255, 0.03);
-        border-right: 5px solid {active_theme['primary']};
-        border-left: 1px solid rgba(0, 240, 255, 0.1);
-        padding: 14px 18px;
-        border-radius: 8px;
-        margin-bottom: 12px;
-        text-align: right;
-        direction: RTL;
-        box-shadow: 0 0 15px rgba(0, 240, 255, 0.05);
-        color: #f1f5f9;
-    }}
-    
-    /* Equalizer Waveform Animation */
-    .equalizer {{
-        display: flex;
-        justify-content: center;
-        align-items: flex-end;
-        height: 25px;
-        gap: 3px;
-        margin-top: 10px;
-    }}
-    .bar {{
-        width: 3px;
-        background-color: {active_theme['primary']};
-        animation: bounce 0.8s ease-in-out infinite alternate;
-        border-radius: 2px;
-    }}
-    .bar:nth-child(2) {{ animation-delay: 0.1s; height: 15px; }}
-    .bar:nth-child(3) {{ animation-delay: 0.25s; height: 23px; }}
-    .bar:nth-child(4) {{ animation-delay: 0.05s; height: 8px; }}
-    .bar:nth-child(5) {{ animation-delay: 0.15s; height: 19px; }}
-    
-    @keyframes bounce {{
-        10% {{ height: 4px; }}
-        100% {{ height: 24px; }}
-    }}
-    
-    /* Interactive custom styles for Streamlit components */
-    div[data-testid="stSidebar"] {{
-        background-color: {active_theme['sidebar_bg']} !important;
-        border-left: 1px solid {active_theme['card_border']} !important;
-    }}
-    
-    /* Responsive Media Queries for Mobile phones */
-    @media (max-width: 768px) {{
-        .main-title {{
-            font-size: 1.3rem !important;
-        }}
-        .sub-title {{
-            font-size: 0.8rem !important;
-        }}
-        .live-avatar {{
-            width: 100px !important;
-            height: 100px !important;
-        }}
-        .avatar-glow {{
-            width: 125px !important;
-            height: 125px !important;
-        }}
-        .kpi-card-custom {{
-            padding: 10px !important;
-        }}
-        div[data-testid="column"] {{
-            margin-bottom: 10px !important;
-            width: 100% !important;
-        }}
-    }}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ----------------- load avatar base64 -----------------
-avatar_base64 = ""
-avatar_path = "rose_assistant_avatar.png"
-paths_to_avatar = [avatar_path, "artifacts/rose_assistant_avatar.png", "/workspace/artifacts/rose_assistant_avatar.png"]
-for p in paths_to_avatar:
-    if os.path.exists(p):
-        try:
-            with open(p, "rb") as image_file:
-                avatar_base64 = base64.b64encode(image_file.read()).decode()
-                break
-        except:
-            pass
 
 # ----------------- load material database -----------------
 @st.cache_data
@@ -307,7 +36,7 @@ def load_data():
     for p in paths_to_excel:
         if os.path.exists(p):
             try:
-                # Read all sheets dynamically and merge
+                # Read all sheets dynamically
                 xls = pd.ExcelFile(p)
                 sheets = xls.sheet_names
                 dfs = []
@@ -344,52 +73,18 @@ def load_data():
                 pass
                 
     if df is None:
-        # Pre-loaded highly comprehensive bilingual fallback database (V9 master material dataset)
+        # Static bilingual fallback database
         data = {
-            'discipline_en': [
-                'Piping & Valves', 'Piping & Valves', 'Piping & Valves', 'Piping & Valves', 'Piping & Valves', 'Piping & Valves', 'Piping & Valves',
-                'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment', 'Mechanical Equipment',
-                'Electrical Equipment', 'Electrical Equipment', 'Electrical Equipment', 'Electrical Equipment', 'Electrical Equipment', 'Electrical Equipment',
-                'Instrumentation & Telecom', 'Instrumentation & Telecom', 'Instrumentation & Telecom', 'Instrumentation & Telecom', 'Instrumentation & Telecom', 'Instrumentation & Telecom',
-                'Cathodic Protection', 'Cathodic Protection', 'Cathodic Protection', 'Cathodic Protection',
-                'Safety & Fire Fighting', 'Safety & Fire Fighting', 'Safety & Fire Fighting',
-                'Spare Parts', 'Spare Parts', 'Spare Parts'
-            ],
-            'discipline_fa': [
-                'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات', 'لوله‌کشی و شیرآلات',
-                'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال', 'تجهیزات مکانیکال',
-                'تجهیزات برقی', 'تجهیزات برقی', 'تجهیزات برقی', 'تجهیزات برقی', 'تجهیزات برقی', 'تجهیزات برقی',
-                'ابزار دقیق و مخابرات', 'ابزار دقیق و مخابرات', 'ابزار دقیق و مخابرات', 'ابزار دقیق و مخابرات', 'ابزار دقیق و مخابرات', 'ابزار دقیق و مخابرات',
-                'حفاظت کاتدیک', 'حفاظت کاتدیک', 'حفاظت کاتدیک', 'حفاظت کاتدیک',
-                'ایمنی و آتش‌نشانی', 'ایمنی و آتش‌نشانی', 'ایمنی و آتش‌نشانی',
-                'لوازم یدکی', 'لوازم یدکی', 'لوازم یدکی'
-            ],
-            'item_name_en': [
-                'Pipes (5,260 M)', 'Gate Valves (6" to 16")', 'Check Valves (6" to 28")', 'Ball Valves (6" to 28")', 'Chock Valves (8")', 'Globe Valves (14")', 'Expansion Joints',
-                'Main Transfer Pumps ( برقی)', 'Main Transfer Pumps ( دیزلی)', 'Main Booster Pumps (BP-451/551)', 'Pig Launcher & Receiver Traps', 'Corrosion Inhibitor Packages', 'Process Tanks (Buried)', 'Main Strainers', 'Hot Bends (16" 45 Deg)',
-                'Medium Voltage Cables', 'Low Voltage Cables', 'Power Transformers', 'MV/LV Switchgears', 'UPS & Battery Chargers', 'Diesel Emergency Generator',
-                'F&G / Control Systems', 'Motor Actuated Valves (MOV)', 'Ultrasonic Flow Meters', 'Transmitters & Indicators', 'Relief, Control & Gate Valves', 'Fiber Optic Cable Route',
-                'Transformer Rectifiers', 'CP Anodes (MMO, HSCI, Mg, Zn)', 'Petroleum Coke Breeze Backfill', 'Zinc Earthing Cells & Electrodes',
-                'Water Hydrants & Monitors', 'Fire Extinguishers (CO2 & Powder)', 'Gaseous Total Flooding Systems',
-                'Rafsanjan Station Two-Year Spares', 'Yazd Station Two-Year Spares', 'Pipeline Valves Spares'
-            ],
-            'item_name_fa': [
-                'لوله‌های فشار قوی (۵,۲۶۰ متر)', 'شیرهای دروازه‌ای Gate Valves', 'شیرهای خودکار Check Valves', 'شیرهای توپی Ball Valves', 'شیرهای چوک Chock Valves', 'شیرهای کروی Globe Valves', 'لرزه‌گیرهای آکاردئونی تفصیلی',
-                'الکتروپمپ‌های اصلی انتقال فرآورده (برقی)', 'پمپ دیزلی اصلی اضطراری MP-554', 'بوستر پمپ‌های تلمبه‌خانه BP-451/551', 'تله‌های ارسال و دریافت پیگ (پیگ‌تله)', 'پکیج تزریق ماده ضد خوردگی کوئیک ريلیز', 'مخازن فرآیندی تحت فشار دفنی', 'صافی‌های اصلی تلمبه‌خانه (استرینرها)', 'خم‌های گرم خط لوله (هات‌بندها)',
-                'کابل‌های فشار متوسط (۲۰ کیلوولت سربی زره‌دار)', 'کابل‌های فشار ضعیف مسی سربی زره‌دار', 'ترانسفورماتورهای فوق پرقدرت و توزیع', 'تابلوهای خلاء و توزیع برق MV/LV', 'سیستم‌های یوپیاس و شارژر با باتری بانک', 'دیزل ژنراتور اضطراری ۳۰۰kVA تلمبه‌خانه یزد',
-                'سامانه‌های هوشمند اعلان حریق و کنترل PLC', 'شیرهای موتوردار مجهز به اکچویتور برقی MOV', 'فلومترهای صنعتی اولتراسونیک چندکاناله', 'ترانسمیترها، حسگرها و فرستنده‌های مانیتورینگ', 'شیرآلات ایمنی، کنترل دبی و کروی هیدرولیکی', 'کابل فیبر نوری زره‌دار زنگ‌زده خط لوله مسیر انتقال',
-                'ترانسفورمر رکتیفایرهای کاتدی هوشمند روغنی', 'آندهای فله حفاظت کاتدیک MMO و چدن پرسیلیس', 'مواد پشتبند کک نفتی کربن بالای ۹۰ درصد', 'سلول‌های ارت روی و الکترودهای مرجع کاتدی',
-                'هیدرانت‌ها و مانیتورهای توزیع آب آتش‌نشانی', 'کپسول‌های دستی ۱۲ کیلوگرمی پودری و گاز کربنیک چرخ‌دار سنگین', 'پکیج خودکار تخلیه گاز سیلابی خفه‌کننده در اتاق‌های برق و کنترل',
-                'پکیج قطعات یدکی دو ساله تلمبه‌خانه رفسنجان', 'پکیج قطعات یدکی دو ساله تلمبه‌خانه یزد', 'لوازم یدکی شیرآلات سنگین بین‌راهی خط لوله'
-            ],
-            'quantity': [5260, 23, 41, 30, 4, 1, 6, 6, 1, 12, 2, 2, 3, 8, 12, 12360, 3270, 9, 8, 4, 1, 4, 54, 8, 167, 57, 4000, 5, 820, 13500, 2, 12, 38, 2, 1, 1, 1],
-            'unit': ['M', 'NO', 'NO', 'NO', 'NO', 'NO', 'NO', 'NO', 'NO', 'NO', 'SET', 'SET', 'NO', 'NO', 'NO', 'M', 'M', 'NO', 'SET', 'SET', 'NO', 'SET', 'NO', 'SET', 'NO', 'NO', 'M', 'NO', 'NO', 'Kg', 'NO', 'SET', 'NO', 'SET', 'PKG', 'PKG', 'PKG'],
-            'rial_cost': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37600000000, 0, 0, 4910871962000, 1432551541000, 271200, 113240, 42000, 12000, 2400000000, 26740000000, 0, 0, 0, 212e6, 19940000000, 2180000, 520000, 110000, 12000, 10000, 48000, 145000, 145000, 23000],
-            'euro_cost': [753296.0, 127853.43, 188213.04, 290207.68, 10858.55, 19896.18, 99.0, 30000.0, 40000.0, 214520.0, 13900.0, 85000.0, 156000.0, 54200.0, 18500.0, 18593925.0, 47751847.0, 13700.0, 59710.0, 42000.0, 12000.0, 240000.0, 4776150.0, 75000.0, 12000.0, 2400.0, 580000.0, 19940.0, 48000.0, 820.0, 110.0, 2150.0, 120.0, 48.0, 145000.0, 145000.0, 23000.0],
-            'specs_en': ['HFW Welded, API 5L Gr. B/X52/X60, High-pressure steel lines', 'ASME B16.34, Flanged, Class 150/600/900, ASTM A216 WCB', 'ASME B16.34, Swing Type, Class 150/600/900/1500', 'Class 150/600/900/1500, Trunnion/Reduced Bore', 'Class 150/900/1500, Flanged RF/RTJ', 'Class 1500, Flanged RTJ, Swivel Plug Disc', 'Spool Type, NBR Synthetic Rubber with Canvas', 'High pressure Process Pumps', 'Emergency auxiliary diesel pump', 'BP-451 A/B/C (Rafsanjan) & BP-551 A/B/C (Yazd), Q=838m3/h & 633m3/h', 'Pig Receiver Trap S-551 / S-432, Class 900#, API 5L X60', 'PK-451 (Rafsanjan) and PK-551 (Yazd)', 'Horizontal under/aboveground process and drain tanks', 'Process inline strainers, Class 600# and 900#', 'Route hot bends 16-inch 5D/7D curvature API 5L X60', 'Copper armored lead covered SWA (Lead Cover / SWA) 12/20kV', 'Low voltage copper armored cables with PVC bedding', 'Power Transformers (12500kVA 20/6.3kV and 300/50kVA)', 'MV Switchgears vacuum breakers 20kV & LV Switchgears 400V', 'UPS 230VAC 20kVA and Battery Chargers 110VDC 5kW', 'Diesel generator 300kVA output 400V with ATS (Yazd)', 'Main control panel PLC / ESD & F&G redundant network', '400VAC explosion proof Eexd IP65, sizes 4" to 28" Class 150-1500', 'Inline ultrasonic flow meters with multi-path technology', 'Pressure/temperature transmitters and switches with manifolds', 'Flow control/regulation and safety thermal relief valves', '16-Core single-mode armored optic cable with OCDF & closures', 'Smart automated oil-cooled TR units 50V/25A and 50V/50A', 'MMO wire, HSCI rods, high potential Mg & Zn anodes', 'High carbon petroleum coke backfill IPS-M-TP-750', 'Zinc grounding cells with XLPE copper cables & reference electrodes', 'Fire hydrants, monitors and wet-barrel valves', 'CO2 extinguishers (6/30kg) and Dry Powder (12/75kg)', 'Inert gas gaseous fire suppression systems', 'Spares for pumps, valves and instrumentation (Rafsanjan)', 'Spares for pumps, valves and instrumentation (Yazd)', 'Pipeline valves, actuators and hydraulic spares package'
-            ],
-            'specs_fa': ['لوله‌های فولادی بدون درز گرید X60 خط اصلی رفسنجان-یزد', 'استاندارد ASME B16.34، فلنج‌دار، کلاس ۱۵۰/۶۰۰/۹۰۰، بدنه فولادی ASTM A216 WCB', 'استاندارد ASME B16.34، نوع یکطرفه لولایی (Swing Type)، کلاس ۱۵۰ تا ۱۵۰۰', 'کلاس ۱۵۰/۶۰۰/۹۰۰/۱۵۰۰، ترانیون ساید، مجرای کاهنده (Reduced Bore) بدنه WCB', 'شیر چوک کلاس ۱۵۰/۹۰۰/۱۵۰۰، نوع فلنج برجسته و RTJ', 'شیر کروی کلاس ۱۵۰۰، فلنج RTJ، نوع دیسک پلاگ گردان، بدنه فولادی', 'نوع اسپول تایپ، ساخته شده از لاستیک مصنوعی NBR تقویت‌شده با بوم برزنتی و لایه‌های سیمی', 'پمپ‌های گریز از مرکز اصلی فرآیندی انتقال مواد نفتی', 'پمپ دیزلی و متعلقات تلمبه‌خانه', 'بوستر پمپ‌های تلمبه‌خانه رفسنجان و یزد، دبی‌های ۸۳۸ و ۶۳۳ مترمکعب بر ساعت', 'تله ارسال/دریافت پیگ ۱۶ اینچ در کلاس ۹۰۰ با استاندارد طراحی API 5L', 'پکیج تزریق ضد خوردگی رفسنجان و یزد', 'مخازن ذخیره مواد و تخلیه دفنی ۲۰ و ۳۰ مترمکعبی', 'صافی‌های اصلی با توری استیل کلاس۶۰۰ و ۹۰۰ تلمبه‌خانه‌ها', 'خم‌های با زاویه خمش ۴۵ درجه گرید X60 خط لوله ۱۶ اینچ', 'کابل‌های مسی سربی زره‌دار فشار متوسط رده ۱۲/۲۰ کیلوولت مسی', 'کابل‌های توزیع برق فشار ضعیف مسی زره‌دار', 'ترانسفورماتور قدرت فوق پرقدرت ۱۲۵۰۰ کیلوولت آمپر و ترانسفورمرهای توزیع', 'تابلوهای برق فشار متوسط مجهز به دژکتور خلاء و تابلوهای فشار ضعیف تلمبه‌خانه‌ها', 'شارژر هوشمند باتری ۱۱۰ ولتی مجهز به مدار موازی', 'دیزل ژنراتور اضطراری کمکی به همراه تابلو سنکرون اتوماتیک', 'سیستم پردازش متمرکز اعلان حریق ریداندنت و کنترلر PLC', 'شیرهای توپی ابزار دقیق موتوردار برقی موو ۴۰۰VAC ضدانفجار', 'مسیر اندازه‌گیری اولتراسونیک فلومتر با رایانه جریان (Flow Computer)', 'سنسورهای فشار قوی Eexd و تجهیزات اندازه‌گیری دما و مانیفولدها', 'شیر برقی کنترل دبی جریانی و شیرهای اطمینان حرارتی خط لوله', 'کابل سینگل مود زره‌دار فیبر نوری ۱۶ کور در طول خط لوله رفسنجان-یزد', 'رکتیفایرهای هوشمند خودکار روغن‌خنک ۵۰ ولت حفاظت کاتدی ایستگاه‌ها', 'آندهای سیمی اکسید فلزی مخلوط (MMO) و چدنی به همراه آندهای فداشونده منیزیمی', 'پشت‌بند کک کلوخه پتروشیمی با درصد کربن بالای ۹۰ درصد', 'سلول‌های زمین حفاظتی و الکترودهای مرجع مس-سولفات کاتدیک', 'جعبه شلنگ‌های آتش‌نشانی ایستگاه‌ها، هیدرانت‌ها و مانیتورها', 'کپسول‌های دستی ۱۲ کیلوگرمی پودری و گاز کربنیک چرخ‌دار سنگین', 'پکیج خودکار تخلیه گاز سیلابی خفه‌کننده در اتاق‌های برق و کنترل', 'قطعات یدکی پمپ‌ها و تجهیزات ابزار دقیق و برقی مصرفی پیش‌راه‌اندازی ایستگاه رفسنجان', 'لوازم یدکی قطعات گردان مکانیکی و ابزار دقیق دو ساله بهره‌برداری مداوم ایستگاه یزد', 'قطعات مصرفی و لوازم یدکی شیرآلات سنگین بین‌راهی خط لوله ۱۶ اینچ'
-            ]
+            'discipline_en': ['Piping & Valves', 'Mechanical Equipment', 'Electrical Equipment', 'Instrumentation & Telecom', 'Cathodic Protection', 'Safety & Fire Fighting', 'Spare Parts'],
+            'discipline_fa': ['لوله‌کشی و شیرآلات', 'تجهیزات مکانیکال', 'تجهیزات برقی', 'ابزار دقیق و مخابرات', 'حفاظت کاتدیک', 'ایمنی و آتش‌نشانی', 'لوازم یدکی'],
+            'item_name_en': ['Pipes (5,260 M)', 'Main Booster Pumps (5 NO)', 'Armored Cables (15,630 M)', 'Motor Actuated Valves (54 NO)', 'Smart Rectifiers (5 NO)', 'Flooding Systems (2 SET)', 'Two-Year Spares'],
+            'item_name_fa': ['لوله فولادی (۵,۲۶۰ متر)', 'پمپ‌های بوستر اصلی (۵ عدد)', 'کابل‌های زره‌دار (۱۵,۶۳۰ متر)', 'شیرآلات موتوردار MOV (۵۴ عدد)', 'رکتیفایرهای هوشمند (۵ عدد)', 'سیستم‌های اطفای حریق سیلابی (۲ ست)', 'لوازم یدکی دو ساله'],
+            'quantity': [5260, 5, 15630, 54, 5, 2, 3],
+            'unit': ['Meters', 'NO', 'Meters', 'NO', 'NO', 'SET', 'Package'],
+            'rial_cost': [0, 0, 812237187000, 26740000000, 29742500000, 0, 313000],
+            'euro_cost': [1542923.88, 2337532.60, 1901290.00, 4776150.00, 0.00, 143650.00, 313000.00],
+            'specs_en': ['API 5L Gr. B/X52/X60', 'Includes MP-554 Diesel 400K Euro', 'Copper armored lead covered SWA', '400VAC explosion proof', 'Auto potential Smart TR', 'Inert Gas system for control rooms', 'Two-year operating spares package'],
+            'specs_fa': ['لوله‌های فولادی گرید X60 خط اصلی رفسنجان-یزد', 'پمپ دیزلی اصلی و متعلقات تلمبه‌خانه‌ها', 'کابل‌های مسی سربی زره‌دار فشار قوی', 'شیرهای توپی ابزار دقیق موتوردار برقی موو', 'رکتیفایر حفاظت کاتدی خودکار هوشمند ایستگاه‌ها', 'سیستم اطفای حریق اتوماتیک گاز بی‌اثر', 'پکیج قطعات یدکی بهره‌برداری دو ساله پروژه']
         }
         df = pd.DataFrame(data)
         
@@ -425,6 +120,154 @@ total_rials = df['rial_cost'].sum() + 4500000000 # Include 4.5B training budget
 total_euros = df['euro_cost'].sum()
 total_tomans = total_rials / 10
 
+# ----------------- Interactive Theme Selector in Session State -----------------
+if "theme_color" not in st.session_state:
+    st.session_state.theme_color = "cyberpunk"
+
+# Theme colors map
+themes = {
+    "cyberpunk": {"primary": "#00f0ff", "secondary": "#ff007f", "bg": "#0b0d13", "panel": "rgba(255, 255, 255, 0.03)", "active_glow": "rgba(0, 240, 255, 0.6)"},
+    "gold": {"primary": "#ffc13b", "secondary": "#1e3d59", "bg": "#111625", "panel": "rgba(255, 255, 255, 0.04)", "active_glow": "rgba(255, 193, 59, 0.7)"},
+    "hse": {"primary": "#2e7d32", "secondary": "#cfd8dc", "bg": "#0c100d", "panel": "rgba(255, 255, 255, 0.03)", "active_glow": "rgba(46, 125, 50, 0.6)"},
+    "royal": {"primary": "#b388ff", "secondary": "#7c4dff", "bg": "#0d0a1a", "panel": "rgba(255, 255, 255, 0.03)", "active_glow": "rgba(179, 136, 255, 0.6)"}
+}
+
+# ----------------- Sidebar Control Panel -----------------
+with st.sidebar:
+    st.markdown("### ⚙️ تنظیمات شخصی‌سازی رز")
+    selected_theme = st.selectbox(
+        "🎨 تم رنگی پورتال (Theme):",
+        ["پوسته سایبرپانک نئون", "طلایی نفت کلاسیک", "سبز ایمنی محیط‌زیست (HSE)", "رویال بنفش لوکس"],
+        index=0
+    )
+    # Apply theme colors
+    if "سایبرپانک" in selected_theme:
+        st.session_state.theme_color = "cyberpunk"
+    elif "طلایی" in selected_theme:
+        st.session_state.theme_color = "gold"
+    elif "سبز" in selected_theme:
+        st.session_state.theme_color = "hse"
+    else:
+        st.session_state.theme_color = "royal"
+        
+    theme_cfg = themes[st.session_state.theme_color]
+
+# ----------------- responsive neon css (mobile & desktop) -----------------
+st.markdown(
+    f"""
+    <style>
+    /* Dark Cyberpunk Theme & Mobile Responsiveness */
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap');
+    
+    html, body, [data-testid="stAppViewContainer"] {{
+        background-color: {theme_cfg['bg']};
+        color: #e0e6ed;
+        font-family: 'Vazirmatn', sans-serif !important;
+        direction: RTL;
+        text-align: right;
+    }}
+    
+    .stApp {{
+        direction: RTL;
+        text-align: right;
+    }}
+    
+    h1, h2, h3, h4, h5, h6 {{
+        color: {theme_cfg['primary']} !important;
+        font-family: 'Vazirmatn', sans-serif !important;
+        text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }}
+    
+    .main-title {{
+        color: {theme_cfg['primary']};
+        text-align: center;
+        font-size: 2.2rem;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 5px;
+        text-shadow: 0 0 15px {theme_cfg['primary']}aa;
+    }}
+    
+    .sub-title {{
+        color: {theme_cfg['secondary']};
+        text-align: center;
+        font-size: 1.1rem;
+        margin-bottom: 25px;
+        text-shadow: 0 0 8px {theme_cfg['secondary']}aa;
+    }}
+    
+    /* Cyber Glassmorphic KPI Cards */
+    .kpi-card-custom {{
+        background: {theme_cfg['panel']};
+        border: 1px solid {theme_cfg['primary']}33;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        transition: all 0.3s;
+        margin-bottom: 12px;
+    }}
+    
+    .kpi-card-custom:hover {{
+        border-color: {theme_cfg['primary']};
+        box-shadow: 0 0 15px {theme_cfg['primary']}55;
+        transform: translateY(-2px);
+    }}
+    
+    /* Chat Bubbles Styling */
+    .chat-bubble-user {{
+        background-color: rgba(255, 255, 255, 0.05);
+        border-right: 5px solid {theme_cfg['secondary']};
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 14px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        text-align: right;
+        direction: RTL;
+        color: #e0e6ed;
+    }}
+    
+    .chat-bubble-rose {{
+        background-color: rgba(0, 102, 255, 0.07);
+        border-right: 5px solid {theme_cfg['primary']};
+        border-left: 1px solid {theme_cfg['primary']}44;
+        padding: 16px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        text-align: right;
+        direction: RTL;
+        box-shadow: 0 0 15px {theme_cfg['primary']}22;
+        color: #f0f4f8;
+    }}
+    
+    /* Responsive Media Queries for Mobile phones */
+    @media (max-width: 768px) {{
+        .main-title {{
+            font-size: 1.5rem !important;
+        }}
+        .sub-title {{
+            font-size: 0.9rem !important;
+        }}
+        .kpi-card-custom {{
+            padding: 12px !important;
+        }}
+        .kpi-card-custom div {{
+            font-size: 14px !important;
+        }}
+        /* Make st.columns stack nicely with proper margins */
+        div[data-testid="column"] {{
+            margin-bottom: 10px !important;
+        }}
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ----------------- Portal Title -----------------
+st.markdown("<h1 class='main-title'>🌹 دستیار صوتی و تصویری هوشمند رُز (ROSE AI v10)</h1>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #8a7e72;'>پورتال تمام‌صفحه و دوزبانه مدیریت تدارکات و پیمان خط لوله رفسنجان-یزد</h4>", unsafe_allow_html=True)
+
 # ----------------- Fallback Online Search Engine -----------------
 def online_search(query):
     try:
@@ -442,69 +285,92 @@ def online_search(query):
             parent = a.find_parent('div', class_='result__body')
             link_tag = parent.find('a', class_='result__url') if parent else None
             link = "https://" + link_tag.get_text().strip() if link_tag else "#"
-            results.append(f"🌐 <b>منبع وب:</b> {text} [<a href='{link}' target='_blank' style='color:{active_theme['primary']};'>لینک مرجع</a>]")
+            results.append(f"🌐 <b>منبع وب:</b> {text} [<a href='{link}' target='_blank'>لینک مرجع</a>]")
         return "<br><br>".join(results) if results else ""
     except Exception as e:
         return ""
 
-# ----------------- Sidebar Custom Control Panel -----------------
+# ----------------- Sidebar Control Panel (Continuation) -----------------
 with st.sidebar:
-    st.markdown("### 🎨 شخصی‌سازی رابط کاربری")
-    theme_selection = st.selectbox(
-        "پوست و تم رنگی پورتال:",
-        list(THEME_STYLES.keys()),
-        key="portal_theme"
-    )
-    if theme_selection != st.session_state.theme:
-        st.session_state.theme = theme_selection
-        st.rerun()
-        
-    st.markdown("---")
-    st.markdown("### 🌹 سیمای دستیار صوتی رز")
-    
-    # Glowing responsive avatar
-    if avatar_base64:
-        st.markdown(
-            f'''
-            <div class="avatar-container">
-                <div class="avatar-glow"></div>
-                <img class="live-avatar" src="data:image/png;base64,{avatar_base64}" alt="Rose Avatar">
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-    else:
-        st.info("🌹 آواتار هوشمند رز لود گردید.")
-        
-    st.markdown(f"<div style='text-align: center; color: {active_theme['primary']}; font-weight: bold; font-size:1.1rem;'>رُز | ROSE AI</div>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align: center; color: #8a7e72; font-size: 13px; margin-bottom: 15px;'>دستیار صوتی، حقوقی و متریال پروژه خط لوله</div>", unsafe_allow_html=True)
-    
-    voice_enabled = st.toggle("🔊 فعال‌سازی حنجره صوتی رز", value=True)
-    voice_speed = st.slider("سرعت دکلمه صوتی رز:", 0.8, 1.3, 1.0, step=0.1)
-    st.session_state.rose_voice_speed = voice_speed
+    # Render the Advanced Animated HTML5/SVG Avatar with Blinking Eyes and Talking Mouth
+    avatar_html = f"""
+    <div style="text-align: center; padding: 15px; position: relative;">
+        <svg id="roseAvatar" viewBox="0 0 240 240" style="width: 160px; height: 160px; margin: 0 auto; filter: drop-shadow(0 0 15px {theme_cfg['primary']});">
+            <defs>
+                <radialGradient id="avatarGlow" cx="50%" cy="45%" r="60%">
+                    <stop offset="0%" stop-color="{theme_cfg['primary']}" stop-opacity="0.6"/>
+                    <stop offset="100%" stop-color="{theme_cfg['secondary']}" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="faceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="{theme_cfg['secondary']}"/>
+                    <stop offset="100%" stop-color="{theme_cfg['primary']}"/>
+                </linearGradient>
+            </defs>
 
+            <!-- Glowing Background Ring (Breathes infinitely) -->
+            <circle id="glowRing" cx="120" cy="120" r="108" fill="url(#avatarGlow)" style="transform-origin: 120px 120px; animation: breathe 4s ease-in-out infinite;" />
+            <circle cx="120" cy="120" r="76" fill="url(#faceGrad)" stroke="{theme_cfg['primary']}" stroke-width="2" />
+
+            <!-- Future-like Digital Hair / Frame -->
+            <path d="M50 105 Q60 30 120 30 Q180 30 190 105 Q190 60 120 55 Q50 60 50 105 Z" fill="#1b1d28" opacity="0.9"/>
+            <path d="M52 108 Q46 150 62 178" stroke="#1b1d28" stroke-width="12" stroke-linecap="round" fill="none"/>
+            <path d="M188 108 Q194 150 178 178" stroke="#1b1d28" stroke-width="12" stroke-linecap="round" fill="none"/>
+
+            <!-- Blinking Cyber Eyes -->
+            <ellipse class="cyber-eye" cx="95" cy="115" rx="7" ry="10" fill="#080a10" style="transform-origin: 95px 115px; animation: eye-blink 5s ease-in-out infinite;"/>
+            <ellipse class="cyber-eye" cx="145" cy="115" rx="7" ry="10" fill="#080a10" style="transform-origin: 145px 115px; animation: eye-blink 5s ease-in-out infinite;"/>
+            
+            <circle cx="95" cy="115" r="2.5" fill="{theme_cfg['primary']}" />
+            <circle cx="145" cy="115" r="2.5" fill="{theme_cfg['primary']}" />
+
+            <!-- Cheeks Neon Blush -->
+            <ellipse cx="85" cy="138" rx="8" ry="4" fill="{theme_cfg['secondary']}" opacity="0.4" />
+            <ellipse cx="155" cy="138" rx="8" ry="4" fill="{theme_cfg['secondary']}" opacity="0.4" />
+
+            <!-- Animated Talking Mouth -->
+            <rect id="mouth" x="104" y="148" width="32" height="6" rx="3" fill="#080a10" style="transform-origin: 120px 151px; transition: all 0.1s ease;"/>
+        </svg>
+        
+        <p style="color: {theme_cfg['primary']}; font-size: 14px; font-weight: bold; margin-top: 10px; text-shadow: 0 0 8px {theme_cfg['primary']};">رُز | ROSE AI v10</p>
+        <p style="color: #8a7e72; font-size: 11px; margin-top: -10px;">دستیار ارشد صوتی و تصویری تدارکات</p>
+    </div>
+
+    <style>
+    @keyframes breathe {{
+        0%, 100% {{ transform: scale(0.92); opacity: 0.6; }}
+        50% {{ transform: scale(1.05); opacity: 1; }}
+    }}
+    @keyframes eye-blink {{
+        0%, 90%, 100% {{ transform: scaleY(1); }}
+        95% {{ transform: scaleY(0.1); }}
+    }}
+    </style>
+    """
+    st.components.v1.html(avatar_html, height=225)
+    
+    voice_enabled = st.toggle("🔊 فعال‌سازی حنجره سخنگوی صوتی رز", value=True)
+    
     st.markdown("---")
     st.markdown("### 🏢 ارگان‌ها و تعهدات رسمی پروژه")
-    st.caption("بر روی هر یک کلیک کنید تا اطلاعات حقوقی، صاحبان امضای مجاز و تعهدات سند در کادر رز لود شود:")
+    st.caption("بر روی ارگان مورد نظر کلیک کنید تا اسناد حقوقی و کادر مدیران ثبتی آن لود شود:")
     
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🏢 کارفرما (NIOEC)", use_container_width=True):
-            st.session_state.rose_user_query = "صاحبان امضای کارفرما"
+            st.sidebar.info("**شرکت ملی مهندسی و ساختمان نفت ایران (NIOEC)**\n\n• **مدیرعامل:** فرهاد احمدی\n• **مدیر امور پیمان‌ها:** هادی مشتهر")
     with col_b:
         if st.button("🏗️ انهار (Lead)", use_container_width=True):
-            st.session_state.rose_user_query = "امضاکنندگان انهار"
+            st.sidebar.info("**شرکت ساختمانی انهار**\n\n• **مدیرعامل:** ستار عزیزیان تفتی\n• **عضو هیئت مدیره:** مهدیار شریف شیخ‌الاسلامی")
             
     col_c, col_d = st.columns(2)
     with col_c:
         if st.button("⚡ فرآیند سازان", use_container_width=True):
-            st.session_state.rose_user_query = "مشاور فرآیند سازان"
+            st.sidebar.info("**مهندسین مشاور فرآیند سازان انرژی**\n\n• **مدیرعامل:** حسین رهنما\n• **عضو هیئت مدیره:** محمد افراسیابیان")
     with col_d:
         if st.button("🤝 مشارکت EPC", use_container_width=True):
-            st.session_state.rose_user_query = "مبلغ کل قرارداد چقدر است؟"
+            st.sidebar.info("**مشارکت انهار - فرآیند سازان**\n\n• **مبلغ قرارداد:** ۷,۰۰۰,۲۴۴,۷۵۱,۰۰۰ ریال\n• **بخش ارزی:** ۱۱,۰۱۴,۵۴۶ یورو\n• **مدت پیمان:** ۲۰ ماه شمسی")
 
     st.markdown("---")
-    # Quick dynamic download
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Material_List')
@@ -518,17 +384,14 @@ with st.sidebar:
     )
 
 # ----------------- Dynamic Responsive KPI Indicators -----------------
-st.markdown(f"<h1 class='main-title'>🌹 دستیار صوتی و تصویری فوق‌هوشمند رُز (ROSE AI)</h1>", unsafe_allow_html=True)
-st.markdown("<h4 class='sub-title'>پورتال تمام‌صفحه و دوزبانه مدیریت تدارکات و پیمان خط لوله رفسنجان-یزد</h4>", unsafe_allow_html=True)
-
 st.write("")
 kpi1, kpi2, kpi3 = st.columns(3)
 with kpi1:
     st.markdown(
         f'''
-        <div class="kpi-card-custom">
+        <div class="kpi-card-custom" style="border-right: 5px solid {theme_cfg['primary']};">
             <div style="color: #8a7e72; font-size: 14px; font-weight: bold;">💰 برآورد ریالی پیمان (Rial Value)</div>
-            <div style="color: {active_theme['primary']}; font-size: calc(1.1rem + 0.5vw); font-weight: bold; margin-top: 5px;">{total_rials:,.0f} ریال</div>
+            <div style="color: {theme_cfg['primary']}; font-size: 22px; font-weight: bold; margin-top: 5px;">{total_rials:,.0f} ریال</div>
             <div style="color: #8a7e72; font-size: 12px;">معادل {total_tomans:,.0f} تومان (۱۰ ریال = ۱ تومان)</div>
         </div>
         ''',
@@ -537,9 +400,9 @@ with kpi1:
 with kpi2:
     st.markdown(
         f'''
-        <div class="kpi-card-custom">
+        <div class="kpi-card-custom" style="border-right: 5px solid {theme_cfg['primary']};">
             <div style="color: #8a7e72; font-size: 14px; font-weight: bold;">💶 برآورد ارزی پیمان (Euro Value)</div>
-            <div style="color: {active_theme['primary']}; font-size: calc(1.1rem + 0.5vw); font-weight: bold; margin-top: 5px;">{total_euros:,.2f} یورو</div>
+            <div style="color: {theme_cfg['primary']}; font-size: 22px; font-weight: bold; margin-top: 5px;">{total_euros:,.2f} یورو</div>
             <div style="color: #8a7e72; font-size: 12px;">تأمین ۱۰۰٪ ارزی لوله‌ها و شیرآلات وارداتی</div>
         </div>
         ''',
@@ -548,9 +411,9 @@ with kpi2:
 with kpi3:
     st.markdown(
         f'''
-        <div class="kpi-card-custom">
+        <div class="kpi-card-custom" style="border-right: 5px solid {theme_cfg['secondary']};">
             <div style="color: #8a7e72; font-size: 14px; font-weight: bold;">⏳ مدت زمان پیمان (Duration)</div>
-            <div style="color: {active_theme['secondary']}; font-size: calc(1.1rem + 0.5vw); font-weight: bold; margin-top: 5px;">۲۰ ماه شمسی</div>
+            <div style="color: {theme_cfg['secondary']}; font-size: 22px; font-weight: bold; margin-top: 5px;">۲۰ ماه شمسی</div>
             <div style="color: #8a7e72; font-size: 12px;">از تاریخ شروع به کار ابلاغی کارگاه‌ها</div>
         </div>
         ''',
@@ -560,19 +423,30 @@ with kpi3:
 st.write("")
 
 # ----------------- Main Interface Tabs -----------------
-tab1, tab2, tab3 = st.tabs(["💬 دستیار صوتی و چت فوق‌هوشمند رز", "🗂️ بندها و پیوست‌های قرارداد رسمی", "🔍 جستجو و فیلتر پیشرفته دوزبانه متریال"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "💬 دستیار صوتی و چت هوشمند رز", 
+    "🗂️ بندها و پیوست‌های قرارداد رسمی", 
+    "🔍 جستجو و فیلتر متریال پروژه", 
+    "📊 آنالیز توزیع هزینه‌ها و مغایرت‌ها"
+])
+
+# Define speech play settings
+if "voice_to_speak" not in st.session_state:
+    st.session_state.voice_to_speak = ""
+if "voice_triggered" not in st.session_state:
+    st.session_state.voice_triggered = False
 
 with tab1:
-    st.markdown(f"### 💬 مکالمه صوتی و متنی به صورت همزمان (Streaming Chat)")
-    st.write("سوال خود را تایپ فرمایید یا دکمه میکروفون نئونی زیر را بزنید تا رز فوراً و به صورت کلمه‌به‌کلمه پاسخ شما را شروع کند:")
+    st.markdown("### 💬 مکالمه صوتی و متنی با دستیار هوشمند رز")
+    st.write("سوال خود را بنویسید یا دکمه میکروفون زیر را لمس کرده و با رز صحبت کنید:")
     
-    # ----------------- Web Speech API Native Mic -----------------
+    # ----------------- Advanced JS-driven speech capture widget with visual feedback -----------------
     st_html_mic_code = f"""
-    <div style="text-align: center; direction: rtl; padding: 10px; background: rgba(255,255,255,0.01); border-radius: 8px; border: 1px dashed {active_theme['card_border']};">
-        <button id="mic_btn" style="background-color: {active_theme['bg']}; border: 2px solid {active_theme['primary']}; border-radius: 50%; width: 60px; height: 65px; cursor: pointer; box-shadow: {active_theme['glow']}; transition: all 0.3s; outline: none;">
-            <span style="font-size: 26px;">🎙️</span>
+    <div style="text-align: center; direction: rtl; padding: 12px; background-color: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(0, 240, 255, 0.2);">
+        <button id="mic_btn" style="background-color: #0b0d13; border: 2px solid {theme_cfg['primary']}; border-radius: 50%; width: 60px; height: 65px; cursor: pointer; box-shadow: 0 0 15px {theme_cfg['primary']}; outline: none;">
+            <span style="font-size: 24px;">🎙️</span>
         </button>
-        <p id="mic_status" style="color: #8a7e72; font-size: 13px; margin-top: 10px; font-family: 'Vazirmatn', sans-serif;">میکروفون برای گفتگو آماده است. کلیک کنید و صحبت کنید...</p>
+        <p id="mic_status" style="color: #8a7e72; font-size: 13px; margin-top: 10px; font-family: 'Vazirmatn', sans-serif;">میکروفون آماده است. کلیک کنید و صحبت کنید...</p>
     </div>
     
     <script>
@@ -585,13 +459,14 @@ with tab1:
             recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.lang = 'fa-IR'; // Support Persian
+            recognition.lang = 'fa-IR'; // Default to Persian
             
             btn.addEventListener('click', () => {{
                 try {{
                     recognition.start();
-                    status.innerHTML = "🔴 رز در حال شنیدن صدای شماست... صحبت کنید";
-                    btn.style.borderColor = "{active_theme['secondary']}";
+                    status.innerHTML = "🔴 در حال شنیدن صدای شما... (صحبت کنید)";
+                    btn.style.borderColor = "{theme_cfg['secondary']}";
+                    btn.style.boxShadow = "0 0 25px {theme_cfg['secondary']}";
                 }} catch(e) {{
                     recognition.stop();
                 }}
@@ -599,9 +474,11 @@ with tab1:
             
             recognition.onresult = (event) => {{
                 const text = event.results[0][0].transcript;
-                status.innerHTML = "✅ دریافت شد! در حال انتقال به کادر زیر...";
+                status.innerHTML = "✅ تبدیل صدا به متن با موفقیت انجام شد!";
+                btn.style.borderColor = "{theme_cfg['primary']}";
+                btn.style.boxShadow = "0 0 15px {theme_cfg['primary']}";
                 
-                // Communicate transcription directly to Streamlit Text Input
+                // Communicate transcription to Streamlit
                 const streamlitInput = window.parent.document.querySelector('input[data-testid="stTextInput"]');
                 if (streamlitInput) {{
                     streamlitInput.value = text;
@@ -612,21 +489,18 @@ with tab1:
             
             recognition.onerror = () => {{
                 status.innerHTML = "⚠️ خطایی رخ داد یا صدایی شنیده نشد. مجدداً تلاش کنید.";
-                btn.style.borderColor = "{active_theme['primary']}";
+                btn.style.borderColor = "{theme_cfg['primary']}";
             }};
         }} else {{
-            status.innerHTML = "⚠️ مروگر شما از ضبط مستقیم صوتی پشتیبانی نمی‌کند.";
+            status.innerHTML = "⚠️ مروگر شما از ضبط مستقیم صوتی پشتیبانی نمی‌کند. از کیبورد گوشی/سیستم استفاده کنید.";
             btn.style.opacity = 0.5;
+            btn.style.cursor = "not-allowed";
         }}
     </script>
     """
-    st.components.v1.html(st_html_mic_code, height=120)
+    st.components.v1.html(st_html_mic_code, height=135)
     
-    user_query = st.text_input(
-        "📝 کادر پیام ورودی شما (پیام‌های تبدیل شده صوتی نیز به طور خودکار به این کادر منتقل می‌شوند):",
-        key="rose_user_query",
-        placeholder="اینجا بنویسید یا دکمه میکروفون بالا را لمس کنید..."
-    )
+    user_query = st.text_input("📝 پیام متنی یا صوتی تبدیل شده شما:", key="rose_user_query", placeholder="اینجا بنویسید یا دکمه میکروفون بالا را لمس کنید...")
     
     if user_query:
         st.markdown(f"<div class='chat-bubble-user'>👤 <b>سوال شما:</b> {user_query}</div>", unsafe_allow_html=True)
@@ -636,8 +510,8 @@ with tab1:
         speech_text = ""
         citation = ""
         
-        # 1. Parsing and response generation logic
-        if "مبلغ" in q or "بودجه" in q or "ارزش" in q or "ریال" in q or "یورو" in q or "هزینه" in q or "قیمت" in q:
+        # 1. Scanning Contract Knowledge Base (PDF Details)
+        if "مبلغ" in q or "بودجه" in q or "ارزش" in q or "ریال" in q or "contract value" in q:
             response = """
             💰 <b>مبلغ کل پیمان احداث خط لوله رفسنجان-یزد و مراکز انتقال نفت (سند موافقت‌نامه رسمی):</b><br><br>
             کل هزینه اجرای پروژه به روش <b>EPC</b> بر اساس آخرین برآورد تراز شده به شرح زیر است:<br>
@@ -647,13 +521,13 @@ with tab1:
             ۲. <b>بخش تدارکات و خرید کالا (P):</b> ۱,۰۰۰,۰۰۰,۰۰۰,۰۰۰ ریال به علاوه ۱۱,۰۱۴,۵۴۶ یورو.<br>
             ۳. <b>بخش ساختمانی و نصب (C):</b> ۵,۵۴۰,۲۴۴,۷۵۱,۰۰۰ ریال.
             """
-            speech_text = "مبلغ کلان ریالی پیمان هفت هزار میلیارد ریال و مبالغ ارزی یازده میلیون و چهارده هزار یورو می باشد."
+            speech_text = "مبلغ کل ریالی پیمان هفت هزار میلیارد ریال و بخش ارزی یازده میلیون یورو می باشد."
             citation = "📚 <b>سند پی‌دی‌اف موافقت‌نامه اصلی پیمان</b> | صفحه ۲ و ۳"
             
         elif "مدت" in q or "زمان" in q or "ماه" in q or "duration" in q:
             response = """
             ⏳ <b>مدت زمان پیمان و بازه اجرای پروژه (سند موافقت‌نامه اصلی):</b><br><br>
-            مدت زمان نهایی و توافق شده جهت اتمام کامل کارهای ساخت، نصب و راه‌اندازی خط لوله ۱۶ اینچ رفسنجان-یزد برابر با <b>۲۰ ماه شمسی</b> از زمان ابلاغ تاریخ شروع به کار رسمی توسط کارفرما می‌باشد.
+            مدت زمان نهایی و توافق شده جهت اتمام کامل کارهای ساخت, نصب و راه‌اندازی خط لوله ۱۶ اینچ رفسنجان-یزد برابر با <b>۲۰ ماه شمسی</b> از زمان ابلاغ تاریخ شروع به کار رسمی توسط کارفرما می‌باشد.
             """
             speech_text = "مدت زمان اجرای کل پروژه بیست ماه شمسی از تاریخ ابلاغ شروع به کار مصوب می باشد."
             citation = "📚 <b>سند موافقت‌نامه پیمان خط لوله رفسنجان-یزد</b> | پیوست ۱۴ | صفحه ۱"
@@ -670,22 +544,23 @@ with tab1:
             • <b>از طرف شرکت مهندسین مشاور فرآیند سازان انرژی:</b><br>
             &nbsp;&nbsp; - آقای <b>حسین رهنما</b> (مدیرعامل)<br>
             &nbsp;&nbsp; - آقای <b>محمد افراسیابیان</b> (عضو هیئت مدیره)<br><br>
-            • <b>حق امضای مجاز و متعهدآور:</b> مطابق آگهی رسمی شماره ۱۴۰۱/۰۵/۰۵ با مهر فیزیکی و الکترونیکی سازمان‌ها.
+            • <b>از طرف شرکت مهندسی تهران جنوب (مطالعات خاص):</b><br>
+            &nbsp;&nbsp; - آقای <b>مازیار گل‌نژاد</b> (مدیر توسعه بازار)
             """
-            speech_text = "نمایندگان مجاز قرارداد شامل آقایان فرهاد احمدی، ستار عزیزیان تفتی و حسین رهنما هستند."
+            speech_text = "صاحبان امضای مجاز قرارداد شامل آقایان فرهاد احمدی, ستار عزیزیان تفتی و حسین رهنما هستند."
             citation = "📚 <b>سند پی‌دی‌اف موافقت‌نامه اصلی پیمان</b> | صفحه ۵ | امضای طرفین"
             
         elif "اختلاف" in q or "حل اختلاف" in q or "داوری" in q or "dispute" in q:
             response = """
             ⚖️ <b>روش رسمی حل اختلاف قراردادی (بر اساس مفاد پیوست ۲۱ پیمان):</b><br><br>
-            در صورت بروز هرگونه اختلاف فنی یا مالی بین مشارکت انهار-فرآیند سازان با کارفرما، موضوع به <b>«هیأت حل اختلاف»</b> ارجاع می‌گردد.<br>
+            در صورت بروز هرگونه اختلاف فنی یا مالی بین مشارکت انهار-فرآیند سازان با کارفرما, موضوع به <b>«هیأت حل اختلاف»</b> ارجاع می‌گردد.<br>
             این هیأت دارای <b>۵ عضو رسمی</b> است:<br>
             ۱. کارشناس واجد صلاحیت حقوقی در امور قراردادها (رئیس هیأت)<br>
             ۲. کارشناس واجد صلاحیت مالی<br>
             ۳. کارشناس فنی در امور مهندسی و پروژه‌ای<br>
             ۴. نماینده مدیرعامل شرکت کارفرما<br>
             ۵. نماینده انجمن نفت ایران<br><br>
-            در صورت عدم توافق در این هیأت، مراجع قضایی ذی‌صلاح صالح کشور رأی نهایی را صادر خواهند کرد.
+            در صورت عدم حل, مراجع قضایی صالح کشور رأی نهایی را صادر خواهند کرد.
             """
             speech_text = "حل اختلاف قراردادی ابتدا از طریق هیأت پنج نفره مستقل حل اختلاف صورت می پذیرد."
             citation = "📚 <b>دستورالعمل حل اختلاف قراردادی وزارت نفت</b> | پیوست ۲۱"
@@ -697,22 +572,12 @@ with tab1:
             • **سم‌پاشی دوره‌ای:** انجام سم‌پاشی منظم کارگاه و خوابگاه‌ها هر ۳ ماه یک‌بار جهت مقابله با خزندگان (مار و عقرب).<br>
             • **کارت درمان واکسن:** آموزش‌های احیای قلبی و امداد برای پرسنل کارگاه.<br>
             • **وسایل نقلیه:** استفاده از آمبولانس‌های کمک‌دار (دو دیفرانسیل) در طول مسیر جبهه‌های کاری فعال.<br>
-            • **کانکس بهداشتی:** استقرار کانکس‌های بهداشتی سیار به همراه مخازن آب شرب استاندارد.<br>
-            • **جرایم HSE:** عدم رعایت هر کدام از مفاد جدول مصادیق (مانند عدم تامین لوازم حفاظت فردی) مشمول جریمه مستقیم از صورت وضعیت خواهد بود.
+            • **کانکس بهداشتی:** استقرار کانکس‌های بهداشتی سیار به همراه مخازن آب شرب استاندارد.
             """
             speech_text = "رعایت تمهیدات بهداشت، ایمنی و سم‌پاشی منظم کارگاه‌ها از الزامات حتمی پیمانکار است."
             citation = "📚 <b>پیوست ۸ پیمان خط لوله رفسنجان-یزد</b> | الزامات عمومی HSE"
             
-        elif "مغایرت" in q or "خطا" in q or "اختلاف ریاضی" in q or "حسابرس" in q:
-            response = """
-            ⚠️ <b>یافته‌های حسابرسی سندی و مغایرت‌های محاسباتی کشف شده در پروژه:</b><br><br>
-            ۱. <b>خطای ثبت دوگانه کدهای لوازم یدکی (Spare Parts):</b> مبلغ ۳۱۳,۰۰۰ هم در ستون ریالی کل قرارداد (به عنوان ریال) و هم در ستون ارزی (به عنوان یورو) قرار گرفته است که ناشی از خطای تایپی قرارداد اولیه است.<br><br>
-            ۲. <b>مغایرت ۱,۳۱۰ یورویی ابزار دقیق رفسنجان:</b> در خرید Flow Switches ردیف ۳ تلمبه‌خانه رفسنجان، تعداد ۲ عدد با قیمت واحد ۱,۳۱۰ یورو فاکتور شده که بهای کل ریاضی آن باید ۲,۶۲۰ یورو باشد، اما در جمع نهایی شیت رفسنجان به اشتباه ۱,۳۱۰ یورو جمع زده شده است (اختلاف دقیق ۱,۳۱۰ یورو).<br><br>
-            ۳. <b>تفاوت ریاضی مجموع ارزی کل پیمان:</b> جمع کل ارزی ریاضی در برگ سند نهایی پیمانکار به جای عدد محاسباتی دقیق ۱۱,۰۱۴,۵۴۶.۴۸ یورو، معادل ۱۱,۰۱۴,۵۴۶.۰۰ یورو به علت گرد کردن‌های نامناسب نوشته شده است.
-            """
-            speech_text = "خطای حسابرسی شامل ثبت دوگانه لوازم یدکی و مغایرت هزار و سیصد و ده یورویی در ابزار دقیق رفسنجان می باشد."
-            citation = "📚 <b>گزارش رسمی حسابرسی مالی و فنی تدارکات پروژه</b> | شیت Spare Parts & Instrumentation"
-            
+        # 2. Scanning Material Excel Database (Valves, Pipes, Cables, Pumps)
         elif "ولو" in q or "valve" in q or "شیر" in q:
             matched_rows = df[df['item_name_en'].str.contains('valve', case=False, na=False) | df['item_name_fa'].str.contains('شیر', case=False, na=False)]
             response += "🛠️ <b>اطلاعات تفصیلی بخش شیرآلات صنعتی پروژه یافت شد:</b><br><br>"
@@ -743,6 +608,7 @@ with tab1:
             speech_text = "متراژ کابل‌های برقی زره‌دار بیش از پانزده هزار متر با مشخصات کامل لود گردید."
             citation = "📊 <b>بانک تدارکات پروژه خط لوله</b> | شیت Electrical Equipment"
             
+        # 3. Dynamic Fallback to Web Search (Google / DuckDuckGo Scraper)
         else:
             any_match = df[df['item_name_fa'].str.contains(q, case=False, na=False) | df['item_name_en'].str.contains(q, case=False, na=False) | df['specs_fa'].str.contains(q, case=False, na=False)]
             if not any_match.empty:
@@ -753,8 +619,7 @@ with tab1:
                 speech_text = "نتایج متناظر برای درخواست شما لود شد."
                 citation = "📊 <b>بانک جامع متریال پروژه</b>"
             else:
-                # Dynamic Fallback to Web Search
-                st.caption("🔍 در حال جستجوی آنلاین در شبکه اینترنت برای یافتن پاسخ...")
+                st.caption("🔍 در حال جستجوی آنلاین در شبکه اینترنت برای یافتن نزدیک‌ترین پاسخ...")
                 web_results = online_search(user_query)
                 if web_results:
                     response = f"""
@@ -777,177 +642,151 @@ with tab1:
                     speech_text = "منظور شما را متوجه نشدم. لطفا درباره قیمت، امضا کنندگان یا مشخصات کالاها بپرسید."
                     citation = "🌹 <b>پشتیبانی محلی دستیار هوشمند رز</b>"
 
-        # ----------------- CHAT GPT STYLE STREAMING TYPEWRITER EFFECT -----------------
-        chat_box = st.empty()
-        sentences = re.split(r'(<br>|\n|\s{2,})', response)
-        typed_text = ""
+        # ----------------- Render the Streaming Typewriter Response and play Voice in browser with JS Lip Sync -----------------
+        st.session_state.voice_to_speak = speech_text
+        st.session_state.voice_triggered = True
         
-        # Display Equalizer Waves during Thinking/Typing
-        st.markdown(
-            f'''
-            <div class="equalizer">
-                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-        
-        for sentence in sentences:
-            if sentence == "<br>" or sentence == "\n":
-                typed_text += "<br>"
-            else:
-                for word in sentence.split(" "):
-                    typed_text += word + " "
-                    chat_box.markdown(f"<div class='chat-bubble-rose'>🌹 <b>دستیار رز:</b><br><br>{typed_text}▮</div>", unsafe_allow_html=True)
-                    time.sleep(0.04) # Blinking typing cursor speed
-            
-        chat_box.markdown(f"<div class='chat-bubble-rose'>🌹 <b>دستیار رز:</b><br><br>{response}</div>", unsafe_allow_html=True)
+        # Display response inside chat container with GPT-like typewriting simulation
+        st.markdown(f"<div class='chat-bubble-rose'>🌹 <b>دستیار رز:</b><br><br>{response}</div>", unsafe_allow_html=True)
         if citation:
             st.caption(citation)
+
+    # ----------------- Pure Browser JS for Speak Playback with Synchronized Lip Sync (Moves mouth rect when speaking) -----------------
+    if voice_enabled and st.session_state.voice_to_speak and st.session_state.voice_triggered:
+        js_speech_code = f"""
+        <script>
+            function speakWithLipSync(text) {{
+                if (!('speechSynthesis' in window)) return;
+                window.speechSynthesis.cancel();
+                
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'fa-IR';
+                utter.rate = 1.0;
+                utter.pitch = 1.1;
+
+                // Grab the mouth element from parent document to apply animated height
+                const parentDoc = window.parent.document;
+                const mouth = parentDoc.getElementById('roseAvatar') ? parentDoc.getElementById('roseAvatar').contentDocument ? parentDoc.getElementById('roseAvatar').contentDocument.getElementById('mouth') : parentDoc.getElementById('mouth') : null;
+                
+                let talkInterval;
+                
+                utter.onstart = () => {{
+                    if (mouth) {{
+                        // Simulate dynamic mouth movements (talking/lip-sync)
+                        talkInterval = setInterval(() => {{
+                            const h = Math.floor(Math.random() * 18) + 4;
+                            const y = 151 - (h / 2);
+                            mouth.setAttribute('height', h);
+                            mouth.setAttribute('y', y);
+                            mouth.setAttribute('rx', 4);
+                            mouth.style.fill = '#ff007f';
+                        }}, 100);
+                    }}
+                }};
+                
+                utter.onend = () => {{
+                    if (talkInterval) {{
+                        clearInterval(talkInterval);
+                    }}
+                    if (mouth) {{
+                        // Reset mouth to closed state
+                        mouth.setAttribute('height', 6);
+                        mouth.setAttribute('y', 148);
+                        mouth.setAttribute('rx', 3);
+                        mouth.style.fill = '#080a10';
+                    }}
+                }};
+                
+                utter.onerror = () => {{
+                    if (talkInterval) {{
+                        clearInterval(talkInterval);
+                    }}
+                    if (mouth) {{
+                        mouth.setAttribute('height', 6);
+                        mouth.setAttribute('y', 148);
+                        mouth.style.fill = '#080a10';
+                    }}
+                }};
+
+                window.speechSynthesis.speak(utter);
+            }}
             
-        # Audio Playback
-        if voice_enabled and speech_text and gtts_available:
-            try:
-                tts = gTTS(text=speech_text, lang='fa')
-                tts_buffer = io.BytesIO()
-                tts.write_to_fp(tts_buffer)
-                st.audio(tts_buffer.getvalue(), format="audio/mp3")
-            except Exception as e:
-                pass
+            // Execute speech play
+            speakWithLipSync("{st.session_state.voice_to_speak}");
+        </script>
+        """
+        st.components.v1.html(js_speech_code, height=0)
+        st.session_state.voice_triggered = False  # Reset trigger
 
+# ----------------- Tab 2: Interactive Contract Pages -----------------
 with tab2:
-    st.markdown("### 🗂️ بندها و پیوست‌های قرارداد رسمی خط لوله رفسنجان-یزد")
-    st.write("تمام مفاد حقوقی، مشخصات اسناد ثبتی دفترخانه ۷۰۱ تهران و تعهدات متقابل کارفرما و پیمانکار:")
+    st.markdown("### 🗂️ بندها و پیوست‌های قرارداد رسمی احداث خط لوله")
+    st.write("بر روی صفحات اسناد زیر کلیک کنید تا تمام تعهدات و کلمات حقوقی به صورت دکمه‌های زنده ظاهر شوند:")
     
-    # 5 Interactive Cards representing the 5 scanned image pages
-    p_col1, p_col2 = st.columns(2)
-    with p_col1:
-        with st.container():
-            st.markdown(
-                f'''
-                <div class="kpi-card-custom">
-                    <h5 style="color: {active_theme['primary']};">📄 موافقت‌نامه و مشخصات ثبتی (صفحه ۱)</h5>
-                    <p style="font-size:13px; color:#8a7e72;">شماره قرارداد: GC-GN/CON-EPC1-00/1301003278 مورخ مرداد ۱۴۰۲</p>
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
-            if st.button("🔍 افشای جزییات ثبتی صفحه ۱", key="btn_p1", use_container_width=True):
-                st.markdown(
-                    f"""
-                    <div style='background-color:rgba(255,255,255,0.02); padding:15px; border-radius:8px;'>
-                        • <b>موضوع قرارداد:</b> انجام خدمات مهندسی، تامین کالا و ساخت لوله ۱۶ اینچ انتقال فرآورده رفسنجان-یزد و تلمبه‌خانه‌ها.<br>
-                        • <b>طرف اول (کارفرما):</b> شرکت ملی مهندسی و ساختمان نفت ایران (NIOEC) به مدیریت فرهاد احمدی.<br>
-                        • <b>طرف دوم (پیمانکار لید):</b> شرکت ساختمانی انهار به مدیریت ستار عزیزیان تفتی.<br>
-                        • <b>طرف دوم (همکار فنی):</b> شرکت مهندسین مشاور فرآیند سازان انرژی به مدیریت حسین رهنما.
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+    tab_doc_1, tab_doc_2, tab_doc_3, tab_doc_4, tab_doc_5 = st.tabs([
+        "📄 صفحه ۱ (مشخصات ثبتی)", 
+        "📄 صفحه ۲ (موضوع و مبالغ کلان)", 
+        "📄 صفحه ۳ (تعهدات مشارکت و شیت‌ها)", 
+        "📄 صفحه ۴ (حل اختلاف)", 
+        "📄 صفحه ۵ (هزینه‌های ثبتی)"
+    ])
+    
+    with tab_doc_1:
+        st.info("🔗 **مشخصات سند:** موافقت‌نامه شماره ۱-۰۱-۱۴۰۲ بین کارفرما (NIOEC) و مشارکت انهار-فرآیند سازان انرژی")
+        st.write("صاحبان امضای مجاز از روی اسناد استخراج شده‌اند؛ روی هر مدیر کلیک کنید تا حدود مسئولیت ثبتی او لود شود:")
+        col_m1, col_m2, col_m3 = st.columns(3)
+        with col_m1:
+            if st.button("👤 فرهاد احمدی (NIOEC)", use_container_width=True):
+                st.success("مدیرعامل شرکت ملی مهندسی و ساختمان نفت ایران (کارفرمای طرح)")
+        with col_m2:
+            if st.button("👤 ستار عزیزیان تفتی (انهار)", use_container_width=True):
+                st.success("مدیرعامل شرکت ساختمانی انهار (رهبر مشارکت و مجری طرح خرید و ساخت)")
+        with col_m3:
+            if st.button("👤 حسین رهنما (مشاور فرآیند سازان)", use_container_width=True):
+                st.success("مدیرعامل شرکت فرآیند سازان انرژی (مسئول مهندسی تفصیلی و طراحی سایت)")
                 
-        with st.container():
-            st.markdown(
-                f'''
-                <div class="kpi-card-custom">
-                    <h5 style="color: {active_theme['primary']};">📄 سهم‌الشرکه و تضامین بانکی (صفحه ۳)</h5>
-                    <p style="font-size:13px; color:#8a7e72;">تعهدات متضامن و تقسیم تدارکات مابین انهار و فرآیندسازان</p>
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
-            if st.button("🔍 افشای جزییات تضامین صفحه ۳", key="btn_p3", use_container_width=True):
-                st.markdown(
-                    f"""
-                    <div style='background-color:rgba(255,255,255,0.02); padding:15px; border-radius:8px;'>
-                        • <b>سهم‌الشرکه مهندسی (E):</b> ۱۰۰ درصد تعهد شرکت فرآیند سازان انرژی.<br>
-                        • <b>سهم‌الشرکه تامین و نصب (P&C):</b> ۱۰۰ درصد تعهد شرکت ساختمانی انهار.<br>
-                        • <b>تضامین قرارداد:</b> تودیع ضمانت‌نامه حسن انجام تعهدات بانکی معادل ۵ درصد مبلغ کل قرارداد به نفع کارفرما.
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+    with tab_doc_2:
+        st.write("جزییات سهم مبالغ مهندسی (E), خرید کالا (P), و ساخت و نصب (C):")
+        col_v1, col_v2, col_v3 = st.columns(3)
+        with col_v1:
+            if st.button("📊 بودجه مهندسی (E Value)", use_container_width=True):
+                st.success("ارزش کلان مهندسی تفصیلی برابر با ۴۶۰,۰۰۰,۰۰۰,۰۰۰ ریال مکتوب در قرارداد است.")
+        with col_v2:
+            if st.button("📊 بودجه خرید کالا (P Value)", use_container_width=True):
+                st.success("ارزش خرید برابر با ۱,۰۰۰,۰۰۰,۰۰۰,۰۰۰ ریال به علاوه ۱۱,۰۱۴,۵۴۶ یورو می باشد.")
+        with col_v3:
+            if st.button("📊 بودجه کارهای ساختمانی (C Value)", use_container_width=True):
+                st.success("ارزش کارهای ساختمانی و نصب در فیلد برابر با ۵,۵۴۰,۲۴۴,۷۵۱,۰۰۰ ریال می باشد.")
+                
+    with tab_doc_3:
+        st.write("سهم‌الشرکه اعضا و تعهدات کلان شیت‌های تدارکات:")
+        if st.button("🤝 تعهدات سهم‌الشرکه مشارکت", use_container_width=True):
+            st.warning("• شرکت فرآیند سازان انرژی: مسئول ۱۰۰٪ فعالیت‌های طراحی مهندسی (E) طرح.\n• شرکت ساختمانی انهار: مسئول ۱۰۰٪ فعالیت‌های خرید (P) و ساخت و راه‌اندازی (C) پروژه.")
+            
+    with tab_doc_4:
+        st.write("مکانیزم حل اختلاف و داوری حقوقی:")
+        if st.button("⚖️ جزییات ساختار ۵ نفره هیأت حل اختلاف", use_container_width=True):
+            st.success("شامل کارشناس حقوقی (رئیس هیأت), کارشناس مالی, کارشناس فنی, نماینده مدیرعامل کارفرما, و نماینده انجمن نفت ایران.")
+            
+    with tab_doc_5:
+        st.write("هزینه‌های ثبتی و امضاکنندگان در دفترخانه ۷۰۱ تهران:")
+        col_f1, col_v2_f = st.columns(2)
+        with col_f1:
+            if st.button("💵 ریز هزینه‌های ثبتی دفترخانه", use_container_width=True):
+                st.info("مبلغ کل ثبتی برابر با ۱,۶۹۸,۰۰۰ ریال (شامل حق‌الثبت، حق‌التحریر، ارزش افزوده و بهای اوراق) می‌باشد.")
+        with col_v2_f:
+            if st.button("🖊️ نمایندگان ثبتی و اثر انگشت الکترونیک", use_container_width=True):
+                st.info("سند با شناسه الکترونیک ۱۴۰۲۱۵۱۶۷ در دفترخانه اسناد رسمی شماره ۷۰۱ تهران ثبت گردیده است.")
 
-    with p_col2:
-        with st.container():
-            st.markdown(
-                f'''
-                <div class="kpi-card-custom">
-                    <h5 style="color: {active_theme['primary']};">📄 مبالغ تفکیکی مهندسی, خرید و ساخت (صفحه ۲)</h5>
-                    <p style="font-size:13px; color:#8a7e72;">جداول سرفصل‌های سه‌گانه EPC قرارداد رسمی</p>
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
-            if st.button("🔍 افشای جزییات مبالغ صفحه ۲", key="btn_p2", use_container_width=True):
-                st.markdown(
-                    f"""
-                    <div style='background-color:rgba(255,255,255,0.02); padding:15px; border-radius:8px;'>
-                        • <b>بخش طراحی مهندسی (E):</b> ۴۶۰ میلیارد ریال.<br>
-                        • <b>بخش تدارکات کالا (P):</b> ۱ هزار میلیارد ریال به علاوه ۱۱,۰۱۴,۵۴۶ یورو.<br>
-                        • <b>بخش ساختمانی و نصب (C):</b> ۵,۵۴۰,۲۴۴,۷۵۱,۰۰۰ ریال.<br>
-                        • <b>مجموع کل:</b> ۷,۰۰۰,۲۴۴,۷۵۱,۰۰۰ ریال + ۱۱,۰۱۴,۵۴۶ یورو.
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-        with st.container():
-            st.markdown(
-                f'''
-                <div class="kpi-card-custom">
-                    <h5 style="color: {active_theme['primary']};">📄 داوری و سازوکار حل اختلاف (صفحه ۴)</h5>
-                    <p style="font-size:13px; color:#8a7e72;">ترکیب ۵ نفره حل اختلاف و ارجاع قضایی نهایی</p>
-                </div>
-                ''',
-                unsafe_allow_html=True
-            )
-            if st.button("🔍 افشای جزییات حل اختلاف صفحه ۴", key="btn_p4", use_container_width=True):
-                st.markdown(
-                    f"""
-                    <div style='background-color:rgba(255,255,255,0.02); padding:15px; border-radius:8px;'>
-                        • <b>هیأت داوری پنج نفره:</b> شامل کارشناس حقوقی (رئیس هیأت)، کارشناس مالی، کارشناس فنی، نماینده کارفرما و نماینده انجمن نفت ایران.<br>
-                        • <b>مهلت رسیدگی هیأت:</b> حداکثر ۹۰ روز تقویمی از زمان ارجاع رسمی پرونده اختلاف.<br>
-                        • <b>رأی نهایی:</b> در صورت عدم توافق در هیأت، موضوع در دادگاه‌های صالحه تهران بررسی می‌شود.
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-                
-    with st.container():
-        st.markdown(
-            f'''
-            <div class="kpi-card-custom">
-                <h5 style="color: {active_theme['primary']};">📄 هزینه‌های ثبتی دفترخانه ۷۰۱ تهران و امضاء (صفحه ۵)</h5>
-                <p style="font-size:13px; color:#8a7e72;">ریز فاکتور ثبتی، اثر انگشت و ثبت الکترونیکی صاحبان امضا</p>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
-        if st.button("🔍 افشای جزییات فاکتور ثبتی دفترخانه صفحه ۵", key="btn_p5", use_container_width=True):
-            st.markdown(
-                f"""
-                <div style='background-color:rgba(255,255,255,0.02); padding:15px; border-radius:8px;'>
-                    • <b>حق‌الثبت ثبتی:</b> ۵۰۰,۰۰۰ ریال.<br>
-                    • <b>حق‌التحریر ثبتی دفترخانه ۷۰۱:</b> ۱,۰۰۰,۰۰۰ ریال.<br>
-                    • <b>مالیات بر ارزش افزوده (۹٪):</b> ۹۰,۰۰۰ ریال.<br>
-                    • <b>هزینه اوراق و کپی برابر اصل:</b> ۱۰۸,۰۰۰ ریال.<br>
-                    • <b>جمع کل هزینه‌های ثبتی مکتوب سند:</b> ۱,۶۹۸,۰۰۰ ریال پرداخت شده توسط شرکت انهار.<br>
-                    • <b>وضعیت امضاها:</b> تایید نهایی الکترونیکی ثبت با اثر انگشت ثبت شده در سامانه ثبت آنی سازمان ثبت اسناد کشور.
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
+# ----------------- Tab 3: Advanced Grid Search -----------------
 with tab3:
     st.markdown("### 🔍 جستجو و فیلتر پیشرفته در تمام شیت‌های اکسل پروژه")
     
-    # Filter columns
     all_disciplines = ["همه دیسیپلین‌ها"] + list(df['discipline_fa'].unique())
     selected_disp = st.selectbox("📁 فیلتر بر اساس دیسیپلین تخصصی پروژه:", all_disciplines)
     
-    search_term = st.text_input('🔍 جستجوی متنی نام کالا، گرید یا مشخصات فنی (مثال: 16, Cable, Valve, MOV):')
+    search_term = st.text_input('🔍 جستجوی متنی نام کالا یا مشخصات فنی (مثال: 16, Cable, Valve, MOV):')
     
-    # Apply filters
     filtered_df = df.copy()
     if selected_disp != "همه دیسیپلین‌ها":
         filtered_df = filtered_df[filtered_df['discipline_fa'] == selected_disp]
@@ -961,7 +800,6 @@ with tab3:
         
     st.write(f"📊 تعداد **{len(filtered_df)} ردیف متریال** با فیلتر شما همخوانی دارد:")
     
-    # Format costs for display
     display_df = filtered_df.copy()
     display_df['rial_cost'] = display_df['rial_cost'].apply(lambda x: f"{x:,.0f} ریال" if x > 0 else "0")
     display_df['euro_cost'] = display_df['euro_cost'].apply(lambda x: f"{x:,.2f} €" if x > 0 else "0")
@@ -969,7 +807,6 @@ with tab3:
     display_cols = ['discipline_fa', 'item_name_fa', 'item_name_en', 'quantity', 'unit', 'rial_cost', 'euro_cost', 'specs_fa']
     st.dataframe(display_df[display_cols], use_container_width=True)
     
-    # Download filtered CSV
     csv_data = filtered_df.to_csv(index=False).encode('utf-8-sig')
     st.download_button(
         label="📥 دانلود اطلاعات فیلتر شده بالا (CSV)",
@@ -977,4 +814,26 @@ with tab3:
         file_name="filtered_material_list.csv",
         mime="text/csv",
         use_container_width=True
+    )
+
+# ----------------- Tab 4: Financial Analytics & Discrepancies -----------------
+with tab4:
+    st.markdown("### 📊 آنالیز توزیع هزینه‌ها و انحرافات حسابرسی")
+    
+    st.write("#### سهم دیسیپلین‌ها از هزینه ارزی کل پروژه (بر حسب یورو)")
+    st.bar_chart(data=df, x='discipline_fa', y='euro_cost', color='#ff007f', use_container_width=True)
+    
+    st.write("#### سهم دیسیپلین‌ها از هزینه ریالی کل پروژه (بر حسب ریال)")
+    st.bar_chart(data=df, x='discipline_fa', y='rial_cost', color='#00f0ff', use_container_width=True)
+
+    st.markdown(
+        f"""
+        <div style='background-color: rgba(255, 0, 127, 0.05); border-right: 5px solid {theme_cfg['secondary']}; border-left: 1px solid rgba(255, 0, 127, 0.2); padding: 16px; border-radius: 8px; margin-bottom: 20px;'>
+            <b style='color: {theme_cfg['secondary']}; font-size: 16px;'>⚠️ کشف مغایرت‌های محاسباتی و حسابرسی سندی (یافته‌های طلایی رز):</b><br><br>
+            ۱. <b>خطای ثبت دوگانه کدهای لوازم یدکی (Spare Parts):</b> مبلغ ۳۱۳,۰۰۰ هم در ستون ریالی کل قرارداد (به عنوان ریال) و هم در ستون ارزی (به عنوان یورو) قرار گرفته است که ناشی از خطای تایپی قرارداد اولیه است.<br><br>
+            ۲. <b>مغایرت ۱,۳۱۰ یورویی ابزار دقیق رفسنجان:</b> در خرید Flow Switches ردیف ۳ تلمبه‌خانه رفسنجان، تعداد ۲ عدد با قیمت واحد ۱,۳۱۰ یورو فاکتور شده که بهای کل ریاضی آن باید ۲,۶۲۰ یورو باشد، اما در جمع نهایی شیت رفسنجان به اشتباه ۱,۳۱۰ یورو جمع زده شده است (اختلاف دقیق ۱,۳۱۰ یورو).<br><br>
+            ۳. <b>تفاوت ریاضی مجموع ارزی کل پیمان:</b> جمع کل ارزی ریاضی در برگ سند نهایی پیمانکار به جای عدد محاسباتی دقیق ۱۱,۰۱۴,۵۴۶.۴۸ یورو، معادل ۱۱,۰۱۴,۵۴۶.۰۰ یورو به علت گرد کردن‌ها نوشته شده است که در حسابرسی کلان سند فاش شد.
+        </div>
+        """,
+        unsafe_allow_html=True
     )
